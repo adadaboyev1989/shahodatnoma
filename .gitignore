@@ -1,0 +1,8 @@
+# Sessiya cookie'lari va saytdan olingan shaxsiy ma'lumotlar repoga tushmasligi kerak
+chrome_profil/
+natijalar/
+*.html
+*.xlsx
+*.rar
+__pycache__/
+*.whl
