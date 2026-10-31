@@ -6,3 +6,7 @@ natijalar/
 *.rar
 __pycache__/
 *.whl
+build/
+dist/
+*.spec
+*.exe

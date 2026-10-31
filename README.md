@@ -2,7 +2,14 @@
 
 `e-shahodatnoma.uz` saytidagi **Arizalar** (`/duplicates`) jadvalini barcha sahifalari bilan yig'ib, Excel faylga saqlaydigan dastur.
 
-## O'rnatish
+## Tayyor exe (Windows)
+
+GitHub'da **Actions → Windows exe** bo'limidagi oxirgi muvaffaqiyatli yig'ishni oching va pastdagi
+**Artifacts** qismidan `eshahodatnoma-exe` ni yuklab oling (zip ichida `eshahodatnoma.exe`).
+Python o'rnatish shart emas, faqat kompyuterda Chrome yoki Edge bo'lishi kerak.
+`natijalar/` va `chrome_profil/` papkalari exe yonida yaratiladi, shuning uchun uni alohida papkaga qo'ying.
+
+## Python orqali o'rnatish
 
 ```bash
 pip install -r requirements.txt

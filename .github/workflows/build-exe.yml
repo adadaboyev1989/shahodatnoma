@@ -1,0 +1,40 @@
+name: Windows exe
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Kutubxonalarni o'rnatish
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      # Brauzer exe ichiga qo'shilmaydi: kompyuterdagi Chrome/Edge ishlatiladi.
+      - name: exe yig'ish
+        run: pyinstaller --onefile --console --name eshahodatnoma --collect-all playwright eshahodatnoma.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eshahodatnoma-exe
+          path: dist/eshahodatnoma.exe
+
+      - name: Release'ga qo'shish
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/eshahodatnoma.exe

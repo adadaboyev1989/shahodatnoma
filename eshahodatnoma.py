@@ -29,8 +29,10 @@ import pandas as pd
 from playwright.sync_api import sync_playwright
 
 SAYT = "https://e-shahodatnoma.uz/duplicates"
-PROFIL = Path(__file__).with_name("chrome_profil")  # sessiya saqlanadi, har safar qayta kirish shart emas
-NATIJALAR = Path(__file__).with_name("natijalar")
+# exe holatida __file__ vaqtinchalik papkaga ishora qiladi, shuning uchun exe yonidagi papka olinadi
+PAPKA = Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).parent
+PROFIL = PAPKA / "chrome_profil"  # sessiya saqlanadi, har safar qayta kirish shart emas
+NATIJALAR = PAPKA / "natijalar"
 XULOSALAR = NATIJALAR / "xulosalar"
 
 YIL = "2026"
@@ -206,16 +208,26 @@ def xulosalarni_yuklash(page, arizalar):
     print(f"\nXulosalar papkasi: {XULOSALAR}\nYuklash hisoboti: {fayl}")
 
 
+def brauzerni_ochish(p):
+    """Kompyuterdagi Chrome ochiladi; u bo'lmasa - Windows bilan keladigan Edge."""
+    for kanal in ("chrome", "msedge"):
+        try:
+            return p.chromium.launch_persistent_context(
+                str(PROFIL), channel=kanal, headless=False, no_viewport=True,
+                args=["--start-maximized"],
+            )
+        except Exception as xato:
+            oxirgi_xato = xato
+    raise RuntimeError(f"Chrome ham, Edge ham topilmadi: {oxirgi_xato}")
+
+
 def main():
     with sync_playwright() as p:
-        context = p.chromium.launch_persistent_context(
-            str(PROFIL), channel="chrome", headless=False, no_viewport=True,
-            args=["--start-maximized"],
-        )
+        context = brauzerni_ochish(p)
         page = context.pages[0] if context.pages else context.new_page()
         page.goto(SAYT)
 
-        print("Chrome ochildi. Iltimos, login va parolingizni kiritib saytga kiring.")
+        print("Brauzer ochildi. Iltimos, login va parolingizni kiritib saytga kiring.")
         input("Kirib bo'lgach, Enter bosing... ")
         page = context.pages[-1]  # oxirgi ochilgan tab
         try:
@@ -235,3 +247,7 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         sys.exit(0)
+    except Exception as xato:
+        # exe oynasi xatoni ko'rsatmasdan yopilib qolmasligi uchun
+        print(f"\nXatolik: {xato}")
+        input("Yopish uchun Enter bosing... ")
