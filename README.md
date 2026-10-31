@@ -24,13 +24,15 @@ python eshahodatnoma.py
 
 1. Chrome ochiladi. Login va parolni o'zingiz kiritasiz (dastur parolni ko'rmaydi).
 2. Kirgach terminalda Enter bosasiz. Dastur o'zi **Dublikat → 2026 → Status = Xulosa berildi** filtrini qo'yadi.
-3. Filtrlangan jadvalning barcha sahifalari varaqlanadi. Faqat sanasi **2026-yil** bo'lgan arizalar olinadi.
+3. Filtrlangan jadvalning barcha sahifalari varaqlanadi. 
 4. Natija `natijalar/arizalar_YYYYMMDD_HHMMSS.xlsx` fayliga saqlanadi:
    - **Arizalar**: ariza raqami, havola, PINFL, status, operator, sana, muddat, F.I.O., viloyat, tuman, maktab
    - **Status / Operator / Tuman / Maktab / Muddat bo'yicha** hisobot varaqlari
-5. So'ng har bir arizaga kirib, **Xulosa** blokidagi vaqti eng so'nggi «Xulosa berildi» bandining faylini
-   `natijalar/xulosalar/<ariza raqami>.pdf` nomi bilan yuklaydi. Yuklash hisoboti ham shu papkaga saqlanadi.
-   Avval yuklangan fayllar o'tkazib yuboriladi, shuning uchun dastur to'xtab qolsa, qayta ishga tushirish kifoya.
+5. So'ng har bir arizaga kirib, **Xulosa** blokidagi vaqti eng so'nggi «Xulosa berildi» bandining faylini yuklaydi.
+   Fayllar «Sana / vaqt» ustunidagi yil bo'yicha ajratiladi (2026 tabida 2025-yil sanali arizalar ham bor):
+   `natijalar/xulosalar/2026/<ariza raqami>.pdf`, `natijalar/xulosalar/2025/<ariza raqami>.pdf` va hokazo.
+   Avval yuklangan fayllar o'tkazib yuboriladi (eski versiyada yil papkasisiz saqlanganlari yil papkasiga ko'chiriladi),
+   shuning uchun dastur to'xtab qolsa, qayta ishga tushirish kifoya.
 
 `chrome_profil/` papkasida kirish sessiyasi saqlanadi, shuning uchun keyingi safar qayta kirish shart bo'lmasligi mumkin.
 Bu papka ham, `natijalar/` ham shaxsiy ma'lumotlarni saqlaydi va `.gitignore` orqali repoga qo'shilmaydi.
