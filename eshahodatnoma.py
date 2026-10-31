@@ -158,7 +158,14 @@ def xulosa_faylini_yuklash(page, ariza_raqami, havola):
     )
     if not bandlar.count():
         return "Xulosa berildi bandi topilmadi"
-    fayl_havola = bandlar.last.locator("a").last
+
+    # Bir nechta "Xulosa berildi" bo'lsa - vaqti eng so'nggisi ([YYYY-MM-DD HH:MM:SS]).
+    # Vaqtlar teng bo'lsa yoki o'qilmasa, ro'yxatda pastrog'i olinadi.
+    vaqtlar = bandlar.evaluate_all(
+        "els => els.map(li => (li.querySelector('span.text-muted')?.textContent.match(/\\d{4}-\\d\\d-\\d\\d \\d\\d:\\d\\d:\\d\\d/) || [''])[0])"
+    )
+    eng_songgi = max(range(len(vaqtlar)), key=lambda i: (vaqtlar[i], i))
+    fayl_havola = bandlar.nth(eng_songgi).locator("a").last
     if not fayl_havola.count():
         return "Xulosa faylsiz"
 
