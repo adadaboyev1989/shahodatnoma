@@ -23,7 +23,7 @@ python eshahodatnoma.py
 ```
 
 1. Chrome ochiladi. Login va parolni o'zingiz kiritasiz (dastur parolni ko'rmaydi).
-2. Kirgach terminalda Enter bosasiz. Dastur o'zi **Dublikat → 2026 → Status = Xulosa berildi** filtrini qo'yadi.
+2. Kirganingizni dastur o'zi sezadi (Enter bosish shart emas) va **Dublikat → 2026 → Status = Xulosa berildi** filtrini qo'yadi.
 3. Filtrlangan jadvalning barcha sahifalari varaqlanadi. 
 4. Natija `natijalar/arizalar_YYYYMMDD_HHMMSS.xlsx` fayliga saqlanadi:
    - **Arizalar**: ariza raqami, havola, PINFL, status, operator, sana, muddat, F.I.O., viloyat, tuman, maktab
@@ -33,6 +33,8 @@ python eshahodatnoma.py
    `natijalar/xulosalar/2026/<ariza raqami>.pdf`, `natijalar/xulosalar/2025/<ariza raqami>.pdf` va hokazo.
    Avval yuklangan fayllar o'tkazib yuboriladi (eski versiyada yil papkasisiz saqlanganlari yil papkasiga ko'chiriladi),
    shuning uchun dastur to'xtab qolsa, qayta ishga tushirish kifoya.
+
+Xatolik bo'lsa, batafsil ma'lumot `natijalar/xatolar.log` fayliga yoziladi.
 
 `chrome_profil/` papkasida kirish sessiyasi saqlanadi, shuning uchun keyingi safar qayta kirish shart bo'lmasligi mumkin.
 Bu papka ham, `natijalar/` ham shaxsiy ma'lumotlarni saqlaydi va `.gitignore` orqali repoga qo'shilmaydi.

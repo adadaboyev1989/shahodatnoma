@@ -3,7 +3,8 @@ e-shahodatnoma.uz -> "Arizalar" (/duplicates) jadvalini yig'ib olish dasturi.
 
 Ish tartibi:
   1. Chrome oynasi ochiladi va sayt yuklanadi.
-  2. Siz login/parolni o'zingiz kiritib, saytga kirasiz va Enter bosasiz.
+  2. Siz login/parolni o'zingiz kiritib, saytga kirasiz. Dastur kirganingizni
+     o'zi sezadi va davom etadi (Enter bosish shart emas).
   3. Dastur o'zi: Dublikat bo'limi -> 2026 tab -> Status = "Xulosa berildi".
   4. Filtrlangan jadvalning barcha sahifalarini varaqlab, arizalarni yig'adi
      va "natijalar" papkasiga Excel fayl qilib saqlaydi
@@ -23,7 +24,10 @@ Ishga tushirish:
   python eshahodatnoma.py
 """
 
+import ctypes
 import sys
+import time
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -39,6 +43,8 @@ XULOSALAR = NATIJALAR / "xulosalar"
 
 TAB = "2026"
 STATUS = "Xulosa berildi"
+
+KIRISH_KUTISH = 15 * 60  # login uchun beriladigan vaqt, soniya
 
 GRID = ".rz-data-grid"
 KEYINGI = ".rz-paginator-next"
@@ -62,12 +68,6 @@ grid => [...grid.querySelectorAll('tbody tr.rz-data-row')].map(tr => {
 """
 
 
-def jami_yozuv(page):
-    matn = page.locator(".rz-paginator-summary").first.inner_text()
-    raqam = "".join(ch for ch in matn if ch.isdigit())
-    return int(raqam) if raqam else None
-
-
 def sahifa_belgisi(page):
     """Joriy sahifadagi birinchi ariza raqami: sahifa almashganini aniqlash uchun."""
     birinchi = page.locator(f"{GRID} tbody tr.rz-data-row a[href]").first
@@ -75,48 +75,106 @@ def sahifa_belgisi(page):
 
 
 # Jadval yuklanib bo'lganini bildiradi: qatorlar bor yoki "yozuv yo'q" xabari chiqqan.
-# status berilsa, barcha qatorlarning Status ustuni shu qiymatga teng bo'lishi kutiladi.
 JADVAL_TAYYOR = """
-([grid, status]) => {
+grid => {
     const g = document.querySelector(grid);
     if (!g) return false;
-    const qatorlar = [...g.querySelectorAll('tbody tr.rz-data-row')];
-    if (!qatorlar.length) return !!g.querySelector('.rz-datatable-emptymessage');
-    if (!status) return true;
-    return qatorlar.every(tr => [...tr.querySelectorAll('td')].some(td =>
-        td.querySelector('.rz-column-title')?.textContent.trim() === 'Status' &&
-        td.querySelector('.rz-cell-data')?.innerText.trim() === status));
+    if (g.querySelector('tbody tr.rz-data-row')) return true;
+    return !!g.querySelector('.rz-datatable-emptymessage');
 }
 """
 
 
-def dublikat_bolimi(page):
-    page.locator("a.rz-navigation-item-link", has_text="Dublikat").first.click()
-    page.wait_for_url("**/duplicates*")
-    page.wait_for_selector(".rz-tabview-nav a[role=tab]", timeout=60_000)
+def qadam(matn):
+    print(f"[{datetime.now():%H:%M:%S}] {matn}", flush=True)
+
+
+def quickedit_ochirish():
+    """Windows konsolida sichqoncha bosilsa dastur muzlab qolmasligi uchun QuickEdit o'chiriladi."""
+    if sys.platform != "win32":
+        return
+    try:
+        k32 = ctypes.windll.kernel32
+        handle = k32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+        rejim = ctypes.c_uint()
+        if k32.GetConsoleMode(handle, ctypes.byref(rejim)):
+            # ENABLE_QUICK_EDIT_MODE (0x40) olib tashlanadi, ENABLE_EXTENDED_FLAGS (0x80) qo'yiladi
+            k32.SetConsoleMode(handle, (rejim.value & ~0x40) | 0x80)
+    except Exception:
+        pass
+
+
+def sayt_tabi(context):
+    """Brauzerdagi e-shahodatnoma tabi (profil eski tablarni tiklagan bo'lishi mumkin)."""
+    for tab in reversed(context.pages):
+        if "e-shahodatnoma.uz" in tab.url:
+            return tab
+    return context.pages[-1] if context.pages else context.new_page()
+
+
+def kirishni_kutish(context):
+    """Foydalanuvchi saytga kirguncha kutadi: sahifada chiqish (logout) havolasi paydo bo'lishi."""
+    qadam("Brauzerda login va parolingizni kiriting. Kirganingizdan so'ng dastur o'zi davom etadi.")
+    tugash = time.time() + KIRISH_KUTISH
+    while time.time() < tugash:
+        for tab in list(context.pages):
+            try:
+                if "e-shahodatnoma.uz" in tab.url and tab.locator('a[href*="logout"]').count():
+                    qadam("Saytga kirildi.")
+                    return tab
+            except Exception:
+                pass  # tab yopilgan yoki sahifa almashayotgan bo'lishi mumkin
+        time.sleep(1)
+    raise RuntimeError(f"{KIRISH_KUTISH // 60} daqiqa ichida saytga kirilmadi")
 
 
 def dublikat_filtrlash(page, yil=TAB, status=STATUS):
-    """Yil tabi -> Status ustuni filtri."""
+    """Dublikat sahifasi -> yil tabi -> Status ustuni filtri."""
+    qadam("Dublikat bo'limi ochilmoqda...")
+    page.goto(SAYT)
+    page.wait_for_selector(".rz-tabview-nav a[role=tab]")
+
+    qadam(f"{yil} tabi tanlanmoqda...")
     tab = page.locator(".rz-tabview-nav a[role=tab]", has_text=yil).first
     tab.click()
     page.wait_for_function("el => el.getAttribute('aria-selected') === 'true'",
-                           arg=tab.element_handle(), timeout=30_000)
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(JADVAL_TAYYOR, arg=[GRID, None], timeout=60_000)
+                           arg=tab.element_handle())
+    page.wait_for_function(JADVAL_TAYYOR, arg=GRID)
 
+    qadam(f"Status = {status} filtri qo'yilmoqda...")
+    oldingi_jami = jami_yozuv(page)
     # Filtr qatoridagi birinchi dropdown - Status ustuni (ikkinchisi - Operator)
     page.locator(f"{GRID} .filter-dropdown").first.click()
     page.locator(f'li.rz-dropdown-item[aria-label="{status}"]:visible').first.click()
-    page.wait_for_load_state("networkidle")
-    page.wait_for_function(JADVAL_TAYYOR, arg=[GRID, status], timeout=60_000)
-    print(f"{yil} tab, Status = {status}: {jami_yozuv(page) or 0} ta yozuv")
+    try:
+        page.wait_for_function(
+            """([sel, eski]) => {
+                const el = document.querySelector(sel);
+                return !el || el.textContent.replace(/\\D/g, '') !== String(eski);
+            }""",
+            arg=[".rz-paginator-summary", oldingi_jami],
+            timeout=20_000,
+        )
+    except Exception:
+        # Soni o'zgarmagan bo'lishi mumkin - baribir qatorlar Status bo'yicha tekshiriladi
+        pass
+    page.wait_for_function(JADVAL_TAYYOR, arg=GRID)
+    qadam(f"{yil} tab, Status = {status}: {jami_yozuv(page) or 0} ta yozuv")
 
 
-def barcha_arizalarni_yigish(page):
+def jami_yozuv(page):
+    summary = page.locator(".rz-paginator-summary").first
+    if not summary.count():
+        return None
+    raqam = "".join(ch for ch in summary.inner_text() if ch.isdigit())
+    return int(raqam) if raqam else None
+
+
+def barcha_arizalarni_yigish(page, status=STATUS):
     if not page.locator(f"{GRID} tbody tr.rz-data-row").count():
         return []
     jami = jami_yozuv(page)
+    qadam("Ro'yxat yig'ilmoqda...")
 
     natija, korilgan = [], set()
     sahifa_no = 1
@@ -124,6 +182,9 @@ def barcha_arizalarni_yigish(page):
         qatorlar = page.locator(GRID).first.evaluate(QATORLARNI_OLISH)
         for q in qatorlar:
             kalit = q.get("Ariza raqami")
+            # Filtr qo'yilmay qolgan bo'lsa ham faqat kerakli statusdagilar olinadi
+            if q.get("Status") != status:
+                continue
             if kalit and kalit not in korilgan:
                 korilgan.add(kalit)
                 natija.append(q)
@@ -221,6 +282,7 @@ def xulosa_faylini_yuklash(page, ariza_raqami, havola, papka):
 
 
 def xulosalarni_yuklash(page, arizalar):
+    qadam(f"Xulosa fayllari yuklanmoqda ({len(arizalar)} ta ariza)...")
     hisobot = []
     for i, ariza in enumerate(arizalar, 1):
         raqam, havola, yil = ariza.get("Ariza raqami"), ariza.get("Havola"), ariza_yili(ariza)
@@ -251,25 +313,37 @@ def brauzerni_ochish(p):
     raise RuntimeError(f"Chrome ham, Edge ham topilmadi: {oxirgi_xato}")
 
 
+def xatoni_yozish(xato):
+    """Xato ekranga va natijalar/xatolar.log fayliga yoziladi (tahlil uchun)."""
+    print(f"\nXatolik: {xato}")
+    try:
+        NATIJALAR.mkdir(exist_ok=True)
+        with open(NATIJALAR / "xatolar.log", "a", encoding="utf-8") as f:
+            f.write(f"\n===== {datetime.now():%Y-%m-%d %H:%M:%S} =====\n{traceback.format_exc()}")
+        print(f"Batafsil: {NATIJALAR / 'xatolar.log'}")
+    except Exception:
+        pass
+
+
 def main():
+    quickedit_ochirish()
+    qadam("Brauzer ochilmoqda...")
     with sync_playwright() as p:
         context = brauzerni_ochish(p)
-        page = context.pages[0] if context.pages else context.new_page()
+        context.set_default_timeout(60_000)
+        page = sayt_tabi(context)
         page.goto(SAYT)
-
-        print("Brauzer ochildi. Iltimos, login va parolingizni kiritib saytga kiring.")
-        input("Kirib bo'lgach, Enter bosing... ")
-        page = context.pages[-1]  # oxirgi ochilgan tab
         try:
-            dublikat_bolimi(page)
+            page = kirishni_kutish(context)
             dublikat_filtrlash(page)
             arizalar = barcha_arizalarni_yigish(page)
             if not arizalar:
                 raise RuntimeError(f"{TAB} tabida '{STATUS}' arizasi topilmadi")
             excelga_saqlash(arizalar)
             xulosalarni_yuklash(page, arizalar)
+            qadam("Tayyor.")
         except Exception as xato:
-            print(f"\nXatolik: {xato}")
+            xatoni_yozish(xato)
         input("\nYopish uchun Enter bosing... ")
 
         context.close()
@@ -282,5 +356,5 @@ if __name__ == "__main__":
         sys.exit(0)
     except Exception as xato:
         # exe oynasi xatoni ko'rsatmasdan yopilib qolmasligi uchun
-        print(f"\nXatolik: {xato}")
+        xatoni_yozish(xato)
         input("Yopish uchun Enter bosing... ")
