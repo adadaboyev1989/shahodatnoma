@@ -8,6 +8,7 @@ Ish tartibi:
   4. Filtrlangan jadvalning barcha sahifalarini varaqlab, arizalarni yig'adi
      va "natijalar" papkasiga Excel fayl qilib saqlaydi
      (Arizalar + Status/Tuman/Maktab/Muddat bo'yicha hisobot varaqlari).
+     Faqat sanasi 2026-yilga tegishli arizalar olinadi.
   5. Har bir arizaga kirib, Xulosa blokidagi eng oxirgi "Xulosa berildi"
      bandining faylini "natijalar/xulosalar/<ariza raqami>.pdf" qilib yuklaydi.
      Avval yuklangan fayllar o'tkazib yuboriladi (dasturni qayta ishga
@@ -76,7 +77,10 @@ def dublikat_filtrlash(page, yil=YIL, status=STATUS):
     """Dublikat bo'limi -> yil tabi -> Status ustuni filtri."""
     page.locator("a.rz-navigation-item-link", has_text="Dublikat").first.click()
     page.wait_for_url("**/duplicates*")
-    page.locator(".rz-tabview-nav a[role=tab]", has_text=yil).first.click()
+    tab = page.locator(".rz-tabview-nav a[role=tab]", has_text=yil).first
+    tab.click()
+    page.wait_for_function("el => el.getAttribute('aria-selected') === 'true'",
+                           arg=tab.element_handle(), timeout=30_000)
     page.wait_for_selector(f"{GRID} tbody tr.rz-data-row", timeout=60_000)
     oldingi_jami = jami_yozuv(page)
 
@@ -126,6 +130,15 @@ def barcha_arizalarni_yigish(page):
         sahifa_no += 1
     print()
     return natija
+
+
+def faqat_yil(arizalar, yil=YIL):
+    """Ariza sanasi (Sana / vaqt) YIL bilan boshlanmaganlarni chiqarib tashlaydi."""
+    mos = [a for a in arizalar if a.get("Sana / vaqt", "").startswith(yil)]
+    if len(mos) < len(arizalar):
+        print(f"{len(arizalar) - len(mos)} ta ariza {yil}-yilga tegishli emas, o'tkazib yuborildi")
+    print(f"{yil}-yil arizalari: {len(mos)} ta")
+    return mos
 
 
 def excelga_saqlash(arizalar):
@@ -232,7 +245,7 @@ def main():
         page = context.pages[-1]  # oxirgi ochilgan tab
         try:
             dublikat_filtrlash(page)
-            arizalar = barcha_arizalarni_yigish(page)
+            arizalar = faqat_yil(barcha_arizalarni_yigish(page))
             excelga_saqlash(arizalar)
             xulosalarni_yuklash(page, arizalar)
         except Exception as xato:
