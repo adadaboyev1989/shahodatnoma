@@ -16,8 +16,8 @@ python eshahodatnoma.py
 ```
 
 1. Chrome ochiladi. Login va parolni o'zingiz kiritasiz (dastur parolni ko'rmaydi).
-2. **Arizalar** sahifasida kerakli yilni (2023–2026) va filtrni tanlaysiz.
-3. Terminalda Enter bosasiz. Dastur jadvalning barcha sahifalarini varaqlab chiqadi.
+2. Kirgach terminalda Enter bosasiz. Dastur o'zi **Dublikat → 2026 → Status = Xulosa berildi** filtrini qo'yadi.
+3. Filtrlangan jadvalning barcha sahifalari varaqlanadi.
 4. Natija `natijalar/arizalar_YYYYMMDD_HHMMSS.xlsx` fayliga saqlanadi:
    - **Arizalar**: ariza raqami, havola, PINFL, status, operator, sana, muddat, F.I.O., viloyat, tuman, maktab
    - **Status / Operator / Tuman / Maktab / Muddat bo'yicha** hisobot varaqlari

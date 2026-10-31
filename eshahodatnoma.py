@@ -3,10 +3,10 @@ e-shahodatnoma.uz -> "Arizalar" (/duplicates) jadvalini yig'ib olish dasturi.
 
 Ish tartibi:
   1. Chrome oynasi ochiladi va sayt yuklanadi.
-  2. Siz login/parolni o'zingiz kiritib, saytga kirasiz.
-  3. Kerakli yil tabini (2023-2026) va filtrlarni tanlab, Enter bosasiz.
-  4. Dastur jadvalning barcha sahifalarini birma-bir varaqlab, arizalarni
-     yig'adi va "natijalar" papkasiga Excel fayl qilib saqlaydi
+  2. Siz login/parolni o'zingiz kiritib, saytga kirasiz va Enter bosasiz.
+  3. Dastur o'zi: Dublikat bo'limi -> 2026 tab -> Status = "Xulosa berildi".
+  4. Filtrlangan jadvalning barcha sahifalarini varaqlab, arizalarni yig'adi
+     va "natijalar" papkasiga Excel fayl qilib saqlaydi
      (Arizalar + Status/Tuman/Maktab/Muddat bo'yicha hisobot varaqlari).
 
 O'rnatish:
@@ -27,6 +27,9 @@ from playwright.sync_api import sync_playwright
 SAYT = "https://e-shahodatnoma.uz/duplicates"
 PROFIL = Path(__file__).with_name("chrome_profil")  # sessiya saqlanadi, har safar qayta kirish shart emas
 NATIJALAR = Path(__file__).with_name("natijalar")
+
+YIL = "2026"
+STATUS = "Xulosa berildi"
 
 GRID = ".rz-data-grid"
 KEYINGI = ".rz-paginator-next"
@@ -60,6 +63,28 @@ def sahifa_belgisi(page):
     """Joriy sahifadagi birinchi ariza raqami: sahifa almashganini aniqlash uchun."""
     birinchi = page.locator(f"{GRID} tbody tr.rz-data-row a[href]").first
     return birinchi.inner_text() if birinchi.count() else ""
+
+
+def dublikat_filtrlash(page, yil=YIL, status=STATUS):
+    """Dublikat bo'limi -> yil tabi -> Status ustuni filtri."""
+    page.locator("a.rz-navigation-item-link", has_text="Dublikat").first.click()
+    page.wait_for_url("**/duplicates*")
+    page.locator(".rz-tabview-nav a[role=tab]", has_text=yil).first.click()
+    page.wait_for_selector(f"{GRID} tbody tr.rz-data-row", timeout=60_000)
+    oldingi_jami = jami_yozuv(page)
+
+    # Filtr qatoridagi birinchi dropdown - Status ustuni (ikkinchisi - Operator)
+    page.locator(f"{GRID} .filter-dropdown").first.click()
+    page.locator(f'li.rz-dropdown-item[aria-label="{status}"]:visible').first.click()
+    page.wait_for_function(
+        """([sel, eski]) => {
+            const el = document.querySelector(sel);
+            return el && el.textContent.replace(/\\D/g, '') !== String(eski);
+        }""",
+        arg=[".rz-paginator-summary", oldingi_jami],
+        timeout=60_000,
+    )
+    print(f"{yil} yil, Status = {status}: {jami_yozuv(page)} ta yozuv")
 
 
 def barcha_arizalarni_yigish(page):
@@ -125,18 +150,14 @@ def main():
         page.goto(SAYT)
 
         print("Chrome ochildi. Iltimos, login va parolingizni kiritib saytga kiring.")
-        while True:
-            buyruq = input(
-                "\n'Arizalar' sahifasini oching, kerakli yil/filtrni tanlang va Enter bosing"
-                " (chiqish uchun q): "
-            ).strip().lower()
-            if buyruq == "q":
-                break
-            page = context.pages[-1]  # oxirgi ochilgan tab
-            try:
-                excelga_saqlash(barcha_arizalarni_yigish(page))
-            except Exception as xato:
-                print(f"\nXatolik: {xato}\nSahifada arizalar jadvali ochiqligini tekshiring.")
+        input("Kirib bo'lgach, Enter bosing... ")
+        page = context.pages[-1]  # oxirgi ochilgan tab
+        try:
+            dublikat_filtrlash(page)
+            excelga_saqlash(barcha_arizalarni_yigish(page))
+        except Exception as xato:
+            print(f"\nXatolik: {xato}")
+        input("\nYopish uchun Enter bosing... ")
 
         context.close()
 
