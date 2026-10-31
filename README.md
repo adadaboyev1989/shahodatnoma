@@ -23,7 +23,7 @@ python eshahodatnoma.py
 ```
 
 1. Chrome ochiladi. Login va parolni o'zingiz kiritasiz (dastur parolni ko'rmaydi).
-2. Kirganingizni dastur o'zi sezadi (Enter bosish shart emas) va **Dublikat → 2026 → Status = Xulosa berildi** filtrini qo'yadi.
+2. Kirganingizni dastur o'zi sezadi (sezmasa, konsolda Enter bosasiz) va **Dublikat → 2026 → Status = Xulosa berildi** filtrini qo'yadi.
 3. Filtrlangan jadvalning barcha sahifalari varaqlanadi. 
 4. Natija `natijalar/arizalar_YYYYMMDD_HHMMSS.xlsx` fayliga saqlanadi:
    - **Arizalar**: ariza raqami, havola, PINFL, status, operator, sana, muddat, F.I.O., viloyat, tuman, maktab

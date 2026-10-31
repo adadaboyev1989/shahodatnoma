@@ -112,19 +112,57 @@ def sayt_tabi(context):
     return context.pages[-1] if context.pages else context.new_page()
 
 
+# Saytga kirilganini bildiruvchi belgilar: chiqish havolasi yoki chap menyudagi bo'limlar.
+KIRILGAN = """
+() => {
+    if (document.querySelector('a[href*="logout" i]')) return true;
+    return [...document.querySelectorAll('a, .rz-navigation-item-text')]
+        .some(el => /^(Dublikat|Chiqish)$/i.test(el.textContent.trim()));
+}
+"""
+
+
+def enter_bosildimi():
+    """Konsolda Enter bosilganini kutmasdan tekshiradi."""
+    try:
+        if sys.platform == "win32":
+            import msvcrt
+            bosildi = False
+            while msvcrt.kbhit():
+                bosildi |= msvcrt.getwch() in "\r\n"
+            return bosildi
+        import select
+        if select.select([sys.stdin], [], [], 0)[0]:
+            sys.stdin.readline()
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def kirishni_kutish(context):
-    """Foydalanuvchi saytga kirguncha kutadi: sahifada chiqish (logout) havolasi paydo bo'lishi."""
+    """Foydalanuvchi saytga kirguncha kutadi (avtomatik yoki Enter bosilganda)."""
     qadam("Brauzerda login va parolingizni kiriting. Kirganingizdan so'ng dastur o'zi davom etadi.")
+    qadam("Agar kirgandan keyin ham davom etmasa, shu oynada Enter bosing.")
     tugash = time.time() + KIRISH_KUTISH
+    keyingi_xabar = time.time() + 15
     while time.time() < tugash:
+        if enter_bosildimi():
+            qadam("Enter bosildi, davom etilmoqda.")
+            return sayt_tabi(context)
         for tab in list(context.pages):
             try:
-                if "e-shahodatnoma.uz" in tab.url and tab.locator('a[href*="logout"]').count():
+                # wait_for_function vaqt chegarasiga ega - sahifa javob bermasa ham osilib qolmaydi
+                if "e-shahodatnoma" in tab.url and tab.wait_for_function(KIRILGAN, timeout=500):
                     qadam("Saytga kirildi.")
                     return tab
             except Exception:
                 pass  # tab yopilgan yoki sahifa almashayotgan bo'lishi mumkin
-        time.sleep(1)
+        if time.time() >= keyingi_xabar:
+            ochiq = ", ".join(t.url for t in context.pages) or "yo'q"
+            qadam(f"Kirish kutilmoqda... ochiq sahifa: {ochiq}")
+            keyingi_xabar = time.time() + 15
+        time.sleep(0.5)
     raise RuntimeError(f"{KIRISH_KUTISH // 60} daqiqa ichida saytga kirilmadi")
 
 
