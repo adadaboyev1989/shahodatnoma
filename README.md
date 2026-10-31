@@ -21,6 +21,9 @@ python eshahodatnoma.py
 4. Natija `natijalar/arizalar_YYYYMMDD_HHMMSS.xlsx` fayliga saqlanadi:
    - **Arizalar**: ariza raqami, havola, PINFL, status, operator, sana, muddat, F.I.O., viloyat, tuman, maktab
    - **Status / Operator / Tuman / Maktab / Muddat bo'yicha** hisobot varaqlari
+5. So'ng har bir arizaga kirib, **Xulosa** blokidagi eng oxirgi «Xulosa berildi» bandining faylini
+   `natijalar/xulosalar/<ariza raqami>.pdf` nomi bilan yuklaydi. Yuklash hisoboti ham shu papkaga saqlanadi.
+   Avval yuklangan fayllar o'tkazib yuboriladi, shuning uchun dastur to'xtab qolsa, qayta ishga tushirish kifoya.
 
 `chrome_profil/` papkasida kirish sessiyasi saqlanadi, shuning uchun keyingi safar qayta kirish shart bo'lmasligi mumkin.
 Bu papka ham, `natijalar/` ham shaxsiy ma'lumotlarni saqlaydi va `.gitignore` orqali repoga qo'shilmaydi.
